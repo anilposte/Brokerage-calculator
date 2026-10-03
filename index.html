@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brokerage Calculator: Table Comparison</title>
+    <!-- External Libraries for Exporting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --primary: #2563eb;
+            --border: #e2e8f0;
+            --success-bg: #f0fdf4;
+            --success-text: #166534;
+            --success-border: #bbf7d0;
+            --alert-color: #ea580c; 
+            --danger-color: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            padding: 30px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .calculator-wrapper {
+            width: 100%;
+            max-width: 1100px;
+            margin-bottom: 60px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            font-size: 1.75rem;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+        .form-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+        .grid-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+        select, input {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        select:focus, input:focus { border-color: var(--primary); }
+        
+        .export-btn {
+            padding: 8px 16px;
+            background-color: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .export-btn:hover {
+            background-color: #f1f5f9;
+        }
+
+        .table-container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            overflow-x: auto;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+            font-size: 0.9rem;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+        .comparison-table th {
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border);
+            background-color: #f8fafc;
+        }
+        .comparison-table th:first-child, .comparison-table td:first-child {
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background-color: #ffffff;
+            width: 20%;
+        }
+        .comparison-table td.unavailable {
+            color: var(--alert-color);
+            font-style: italic;
+        }
+        .comparison-table .total-row th, .comparison-table .total-row td {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            border-top: 2px solid var(--border);
+            border-bottom: none;
+            background-color: #f8fafc;
+        }
+        .comparison-table .total-row td {
+            color: var(--primary);
+        }
+        .comparison-table .best-rate-row th, .comparison-table .best-rate-row td {
+            border-bottom: none;
+            padding-top: 16px;
+            background-color: #ffffff;
+        }
+        .badge-best {
+            display: inline-block;
+            font-size: 0.75rem;
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid var(--success-border);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .strikethrough {
+            text-decoration: line-through;
+            color: #94a3b8;
+            font-size: 0.85em;
+            margin-right: 6px;
+        }
+        .limit-str {
+            color: var(--alert-color);
+            font-weight: 600;
+            font-size: 0.85em;
+            display: block;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SECTION 1: BROKERAGE COMPARISON -->
+    <div class="calculator-wrapper">
+        <div class="header">
+            <h1>Brokerage Fee Calculator</h1>
+            <p>Compare US & UK/EU Market execution fees in real time</p>
+        </div>
+
+        <div class="form-card">
+            <div class="grid-inputs">
+                <div class="form-group">
+                    <label for="viewMode">Brokers to Compare</label>
+                    <select id="viewMode">
+                        <option value="all">Compare All</option>
+                        <option value="paasa">Paasa Only</option>
+                        <option value="ibkr">Interactive Brokers/Paasa Apex plan Only</option>
+                        <option value="indmoney">INDmoney Only</option>
+                        <option value="dhan">Dhan Only</option>
+                        <option value="vested">Vested Finance Only</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="market">Market / Region</label>
+                    <select id="market">
+                        <option value="US">United States (USD)</option>
+                        <option value="UK_EU">United Kingdom / Europe</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="tradeType">Trade Type</label>
+                    <select id="tradeType">
+                        <option value="Buy">Buy</option>
+                        <option value="Sell">Sell</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantity">Qty of ETFs/shares</label>
+                    <input type="number" id="quantity" value="100" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="price">Price of ETF/share ($)</label>
+                    <input type="number" id="price" value="100" min="0.01" step="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label for="numTrades">Number of Trades</label>
+                    <input type="number" id="numTrades" value="1" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label>Total Trade Value</label>
+                    <div id="displayTradeValue" style="padding: 10px 12px; font-weight: 700; font-size: 1.05rem; color: var(--primary); background: #eff6ff; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; white-space: nowrap; overflow-x: auto;">$10,000.00</div>
+                </div>
+
+                <!-- Interactive Brokers/Paasa Apex plan Specific Inputs -->
+                <div class="form-group ibkr-ctrl">
+                    <label for="ibkrPlan">IBKR Plan</label>
+                    <select id="ibkrPlan">
+                        <option value="Tiered">Tiered</option>
+                        <option value="Fixed">Fixed</option>
+                    </select>
+                </div>
+
+                <div class="form-group ibkr-ctrl" id="volTierGroup">
+                    <label for="ibkrVolTier" id="volTierLabel">IBKR Monthly Tier</label>
+                    <select id="ibkrVolTier"></select>
+                </div>
+            </div>
+            
+            <!-- FX Markup Settings (Toggleable) -->
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
+                <span style="color: var(--primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; user-select: none;" onclick="toggleFX()">
+                    <span id="fxToggleIcon" style="margin-right: 6px; font-size: 1.1rem; line-height: 1;">+</span> Adjust Platform FX Markups (%)
+                </span>
+                <div id="fxSettings" style="display: none; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-top: 16px; padding: 16px; background-color: #f8fafc; border-radius: 8px; border: 1px solid var(--border);">
+                    <div class="form-group"><label>Paasa FX (%)</label><input type="number" id="fx_paasa" value="0.00" step="0.01" class="fx-input"></div>
+                    <div class="form-group"><label>IBKR FX (%)</label><input type="number" id="fx_ibkr" value="0.03" step="0.01" class="fx-input"></div>
+                    <div class="form-group"><label>INDmoney FX (%)</label><input type="number" id="fx_indmoney" value="0.00" step="0.01" class="fx-input"></div>
+                    <div class="form-group"><label>Dhan FX (%)</label><input type="number" id="fx_dhan" value="0.00" step="0.01" class="fx-input"></div>
+                    <div class="form-group"><label>Vested FX (%)</label><input type="number" id="fx_vested" value="1.20" step="0.01" class="fx-input"></div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 12px;">
+            <button class="export-btn" onclick="downloadJPG('tableContainer', 'Brokerage_Comparison.jpg')">📸 Download JPG</button>
+            <button class="export-btn" onclick="downloadExcel('comparison-table', 'Brokerage_Comparison.xlsx')">📊 Download Excel</button>
+        </div>
+
+        <div class="table-container" id="tableContainer">
+            <!-- Table dynamically injected here -->
+        </div>
+    </div>
+
+
+    <!-- SECTION 2: ANNUAL PORTFOLIO COST BREAKDOWN -->
+    <div class="calculator-wrapper">
+        <div class="header" style="border-top: 1px dashed var(--border); padding-top: 48px;">
+            <h2>Annual Portfolio Cost Estimator</h2>
+            <p>Calculate the total year-one funding and ongoing annual maintenance for an ETF basket.</p>
+        </div>
+
+        <div class="form-card">
+            <div class="grid-inputs">
+                <div class="form-group">
+                    <label for="pfInvestment">Total Portfolio Size ($)</label>
+                    <input type="number" id="pfInvestment" value="10000" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="pfMgmtFee">Annual Advisory / Mgmt Fee (%)</label>
+                    <input type="number" id="pfMgmtFee" value="1.00" min="0" step="0.05">
+                </div>
+                <div class="form-group">
+                    <label for="pfExpenseRatio">Avg. ETF Expense Ratio (TER) (%)</label>
+                    <input type="number" id="pfExpenseRatio" value="0.15" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="pfForex">Forex / Remittance Fee (%)</label>
+                    <input type="number" id="pfForex" value="0.50" min="0" step="0.05">
+                </div>
+                <div class="form-group">
+                    <label for="pfNumScrips">Number of Scrips (ETFs)</label>
+                    <input type="number" id="pfNumScrips" value="4" min="1" step="1">
+                </div>
+                <div class="form-group">
+                    <label for="pfFundType">Fund Type</label>
+                    <select id="pfFundType">
+                        <option value="US">US ETFs</option>
+                        <option value="UK_EU">UCITS (UK / Europe)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pfPlatform">Execution Platform</label>
+                    <select id="pfPlatform">
+                        <option value="paasa">Paasa</option>
+                        <option value="ibkr">Interactive Brokers/Paasa Apex plan</option>
+                        <option value="indmoney">INDmoney</option>
+                        <option value="dhan">Dhan</option>
+                        <option value="vested">Vested Finance</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top: 16px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="pfGstMgmt" checked style="width: 18px; height: 18px; cursor: pointer;">
+                <label for="pfGstMgmt" style="margin: 0; cursor: pointer; color: var(--text-primary);">Apply 18% GST on Management Fee</label>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 12px;">
+            <button class="export-btn" onclick="downloadJPG('pfTableContainer', 'Portfolio_Cost_Breakdown.jpg')">📸 Download JPG</button>
+            <button class="export-btn" onclick="downloadExcel('pf-table', 'Portfolio_Cost_Breakdown.xlsx')">📊 Download Excel</button>
+        </div>
+
+        <div class="table-container" id="pfTableContainer">
+            <!-- Portfolio table dynamically injected here -->
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // --- BROKERAGE COMPARISON LOGIC ---
+        const viewMode = document.getElementById('viewMode');
+        const marketSelect = document.getElementById('market');
+        const tradeTypeSelect = document.getElementById('tradeType');
+        const quantityInput = document.getElementById('quantity');
+        const priceInput = document.getElementById('price');
+        const numTradesInput = document.getElementById('numTrades');
+        
+        const ibkrPlan = document.getElementById('ibkrPlan');
+        const volTierGroup = document.getElementById('volTierGroup');
+        const volTierLabel = document.getElementById('volTierLabel');
+        const ibkrVolTier = document.getElementById('ibkrVolTier');
+        const tableContainer = document.getElementById('tableContainer');
+
+        const usTiers = [
+            { label: '≤ 300k shares', rate: 0.0035 },
+            { label: '300k - 3M shares', rate: 0.0020 },
+            { label: '3M - 20M shares', rate: 0.0015 },
+            { label: '20M - 100M shares', rate: 0.0010 },
+            { label: '> 100M shares', rate: 0.0005 }
+        ];
+
+        const euTiers = [
+            { label: '≤ 50M EUR', rate: 0.0005 },
+            { label: '50M - 100M EUR', rate: 0.0003 },
+            { label: '100M - 500M EUR', rate: 0.0002 },
+            { label: '> 500M EUR', rate: 0.00015 }
+        ];
+
+        function toggleFX() {
+            const fxDiv = document.getElementById('fxSettings');
+            const icon = document.getElementById('fxToggleIcon');
+            if (fxDiv.style.display === 'none') {
+                fxDiv.style.display = 'grid';
+                icon.innerText = '−';
+            } else {
+                fxDiv.style.display = 'none';
+                icon.innerText = '+';
+            }
+        }
+
+        function fmt(num) { 
+            if (num === 0 || num === null || num === Infinity) return '-';
+            return '$' + num.toFixed(2); 
+        }
+        function fmtDetailed(num) { 
+            if (num === 0 || num === null || num === Infinity) return '-';
+            return '$' + num.toFixed(4).replace(/\.?0+$/, ''); 
+        }
+
+        function updateUI() {
+            const market = marketSelect.value;
+            const plan = ibkrPlan.value;
+            const mode = viewMode.value;
+
+            if (mode === 'all' || mode === 'ibkr') {
+                document.querySelectorAll('.ibkr-ctrl').forEach(e => e.style.display = 'flex');
+            } else {
+                document.querySelectorAll('.ibkr-ctrl').forEach(e => e.style.display = 'none');
+            }
+
+            if (plan === 'Tiered' && (mode === 'all' || mode === 'ibkr')) {
+                volTierGroup.style.display = 'flex';
+                ibkrVolTier.innerHTML = '';
+                if (market === 'US') {
+                    volTierLabel.innerText = "IBKR Monthly Volume";
+                    usTiers.forEach((tier, i) => ibkrVolTier.add(new Option(tier.label, i)));
+                } else {
+                    volTierLabel.innerText = "IBKR Monthly Value";
+                    euTiers.forEach((tier, i) => ibkrVolTier.add(new Option(tier.label, i)));
+                }
+            } else {
+                volTierGroup.style.display = 'none';
+            }
+
+            // Update Portfolio Platform dropdown based on pfFundType
+            if (pfPlatform && pfFundType) {
+                const currentPlat = pfPlatform.value;
+                const pfMarket = pfFundType.value;
+                pfPlatform.innerHTML = `
+                    <option value="paasa">Paasa</option>
+                    <option value="ibkr">Interactive Brokers/Paasa Apex plan</option>
+                    <option value="indmoney">INDmoney</option>
+                `;
+                if (pfMarket === 'US') {
+                    pfPlatform.innerHTML += `
+                        <option value="dhan">Dhan</option>
+                        <option value="vested">Vested Finance</option>
+                    `;
+                }
+                if (pfPlatform.querySelector(`option[value="${currentPlat}"]`)) {
+                    pfPlatform.value = currentPlat;
+                } else {
+                    pfPlatform.value = 'paasa';
+                }
+            }
+
+            calculateAll();
+            calculatePortfolio();
+        }
+
+        function calculateAll() {
+            const market = marketSelect.value;
+            const isSell = tradeTypeSelect.value === 'Sell';
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const numTrades = parseInt(numTradesInput.value) || 1;
+            
+            const singleTradeValue = quantity * price;
+            const totalTradeValue = singleTradeValue * numTrades;
+
+            let displayStr = fmt(totalTradeValue);
+            if (numTrades > 1) {
+                displayStr += ` (${numTrades} trades)`;
+            }
+            document.getElementById('displayTradeValue').innerText = displayStr;
+
+            // Fetch FX markups from inputs
+            const fxPaasa = parseFloat(document.getElementById('fx_paasa').value) || 0;
+            const fxIbkr = parseFloat(document.getElementById('fx_ibkr').value) || 0;
+            const fxIndmoney = parseFloat(document.getElementById('fx_indmoney').value) || 0;
+            const fxDhan = parseFloat(document.getElementById('fx_dhan').value) || 0;
+            const fxVested = parseFloat(document.getElementById('fx_vested').value) || 0;
+
+            // Structure to hold data per broker
+            const data = {
+                paasa: { name: "Paasa", available: true, rateStr: "", rawCalc: null, limitStr: "", baseBrokerage: 0, gst: 0, ifsca: 0, sec: 0, taf: 0, clearing: 0, passthrough: 0, fxCost: 0, total: Infinity, scheduleFA: "Yes" },
+                ibkr: { name: "Interactive Brokers/Paasa Apex plan", available: true, rateStr: "", rawCalc: null, limitStr: "", baseBrokerage: 0, gst: 0, ifsca: 0, sec: 0, taf: 0, clearing: 0, passthrough: 0, fxCost: 0, total: Infinity, scheduleFA: "No" },
+                indmoney: { name: "INDmoney", available: true, rateStr: "", rawCalc: null, limitStr: "", baseBrokerage: 0, gst: 0, ifsca: 0, sec: 0, taf: 0, clearing: 0, passthrough: 0, fxCost: 0, total: Infinity, scheduleFA: "Yes" },
+                dhan: { name: "Dhan", available: market === 'US', rateStr: "", rawCalc: null, limitStr: "", baseBrokerage: 0, gst: 0, ifsca: 0, sec: 0, taf: 0, clearing: 0, passthrough: 0, fxCost: 0, total: Infinity, scheduleFA: "Yes" },
+                vested: { name: "Vested Finance", available: market === 'US', rateStr: "", rawCalc: null, limitStr: "", baseBrokerage: 0, gst: 0, ifsca: 0, sec: 0, taf: 0, clearing: 0, passthrough: 0, fxCost: 0, total: Infinity, scheduleFA: "Yes" }
+            };
+
+            if (singleTradeValue <= 0) {
+                renderTable(data, market);
+                return;
+            }
+
+            // --- 1. PAASA ---
+            let pRaw = singleTradeValue * 0.001; 
+            let pMin = (market === 'US') ? 0.50 : 1.70;
+            let pMax = 40.00;
+            let pBrok = 0;
+            
+            data.paasa.rateStr = "0.10%";
+            if (pRaw < pMin) {
+                data.paasa.rawCalc = pRaw * numTrades;
+                data.paasa.limitStr = `↳ Min applied (${fmt(pMin)}/trade)`;
+                pBrok = pMin;
+            } else if (pRaw > pMax) {
+                data.paasa.rawCalc = pRaw * numTrades;
+                data.paasa.limitStr = `↳ Max capped (${fmt(pMax)}/trade)`;
+                pBrok = pMax;
+            } else {
+                pBrok = pRaw;
+            }
+            data.paasa.baseBrokerage = pBrok * numTrades;
+            
+            if (market === 'US') {
+                data.paasa.taf = (isSell ? quantity * 0.000195 : 0) * numTrades;
+                data.paasa.clearing = (quantity * 0.00020) * numTrades;
+                data.paasa.passthrough = (data.paasa.baseBrokerage * 0.000175) + (data.paasa.baseBrokerage * 0.000565);
+            }
+            data.paasa.fxCost = totalTradeValue * (fxPaasa / 100);
+            data.paasa.total = data.paasa.baseBrokerage + data.paasa.taf + data.paasa.clearing + data.paasa.passthrough + data.paasa.fxCost;
+
+            // --- 2. IBKR ---
+            const plan = ibkrPlan.value;
+            let iBase = 0, iMin = 0, iMax = Infinity;
+            if (market === 'US') {
+                if (plan === 'Tiered') {
+                    const rate = usTiers[parseInt(ibkrVolTier.value) || 0].rate;
+                    iBase = quantity * rate;
+                    iMin = 0.35; iMax = singleTradeValue * 0.01;
+                    data.ibkr.rateStr = `${fmtDetailed(rate)} / sh`;
+                } else {
+                    iBase = quantity * 0.005;
+                    iMin = 1.00; iMax = singleTradeValue * 0.01;
+                    data.ibkr.rateStr = "$0.005 / sh";
+                }
+            } else {
+                if (plan === 'Tiered') {
+                    const rate = euTiers[parseInt(ibkrVolTier.value) || 0].rate;
+                    iBase = singleTradeValue * rate;
+                    iMin = 1.70; iMax = 39.00;
+                    data.ibkr.rateStr = `${(rate * 100).toFixed(3)}%`;
+                } else {
+                    iBase = singleTradeValue * 0.0005;
+                    iMin = 4.00;
+                    data.ibkr.rateStr = "0.05%";
+                }
+            }
+            
+            let iBrok = 0;
+            if (iBase < iMin) {
+                data.ibkr.rawCalc = iBase * numTrades;
+                data.ibkr.limitStr = `↳ Min applied (${fmt(iMin)}/trade)`;
+                iBrok = iMin;
+            } else if (iBase > iMax && iMax !== Infinity) {
+                data.ibkr.rawCalc = iBase * numTrades;
+                data.ibkr.limitStr = `↳ Max capped (${fmt(iMax)}/trade)`;
+                iBrok = iMax;
+            } else {
+                iBrok = iBase;
+            }
+            data.ibkr.baseBrokerage = iBrok * numTrades;
+            data.ibkr.fxCost = totalTradeValue * (fxIbkr / 100);
+            data.ibkr.total = data.ibkr.baseBrokerage + data.ibkr.fxCost; 
+
+            // --- 3. INDmoney ---
+            if (data.indmoney.available) {
+                let indBrok = 0;
+                if (price < 1.00) {
+                    data.indmoney.rateStr = "0.38% (Low Price)";
+                    indBrok = singleTradeValue * 0.0038;
+                } else {
+                    data.indmoney.rateStr = "0.25%";
+                    let raw = singleTradeValue * 0.0025;
+                    if (raw > 25.00) {
+                        data.indmoney.rawCalc = raw * numTrades;
+                        data.indmoney.limitStr = `↳ Max capped ($25.00/trade)`;
+                        indBrok = 25.00;
+                    } else {
+                        indBrok = raw;
+                    }
+                }
+                data.indmoney.baseBrokerage = indBrok * numTrades;
+                data.indmoney.gst = data.indmoney.baseBrokerage * 0.18;
+                
+                if (market === 'US') {
+                    data.indmoney.sec = (isSell ? Math.max(0.01, singleTradeValue * 0.0000206) : 0) * numTrades;
+                    data.indmoney.taf = (isSell ? Math.min(9.79, Math.max(0.01, quantity * 0.000195)) : 0) * numTrades;
+                } else {
+                    data.indmoney.sec = 0;
+                    data.indmoney.taf = 0;
+                }
+                data.indmoney.fxCost = totalTradeValue * (fxIndmoney / 100);
+                data.indmoney.total = data.indmoney.baseBrokerage + data.indmoney.gst + data.indmoney.sec + data.indmoney.taf + data.indmoney.fxCost;
+            }
+
+            // --- 4. Dhan ---
+            if (data.dhan.available) {
+                data.dhan.rateStr = "0.25%";
+                let dBrok = singleTradeValue * 0.0025;
+                data.dhan.baseBrokerage = dBrok * numTrades;
+                data.dhan.gst = data.dhan.baseBrokerage * 0.18;
+                data.dhan.ifsca = (singleTradeValue * 0.00005) * numTrades;
+                data.dhan.sec = (isSell ? singleTradeValue * 0.0000206 : 0) * numTrades;
+                data.dhan.taf = (isSell ? quantity * 0.000195 : 0) * numTrades;
+                data.dhan.fxCost = totalTradeValue * (fxDhan / 100);
+                data.dhan.total = data.dhan.baseBrokerage + data.dhan.gst + data.dhan.ifsca + data.dhan.sec + data.dhan.taf + data.dhan.fxCost;
+            }
+
+            // --- 5. Vested ---
+            if (data.vested.available) {
+                data.vested.rateStr = "0.25%";
+                let vRaw = singleTradeValue * 0.0025;
+                let vBrok = 0;
+                if (vRaw > 35.00) {
+                    data.vested.rawCalc = vRaw * numTrades;
+                    data.vested.limitStr = `↳ Max capped ($35.00/trade)`;
+                    vBrok = 35.00;
+                } else {
+                    vBrok = vRaw;
+                }
+                data.vested.baseBrokerage = vBrok * numTrades;
+                data.vested.sec = (isSell ? Math.max(0.01, singleTradeValue * 0.0000206) : 0) * numTrades;
+                data.vested.taf = (isSell ? Math.min(9.79, Math.max(0.01, quantity * 0.000195)) : 0) * numTrades;
+                data.vested.fxCost = totalTradeValue * (fxVested / 100);
+                data.vested.total = data.vested.baseBrokerage + data.vested.sec + data.vested.taf + data.vested.fxCost;
+            }
+
+            renderTable(data, market);
+        }
+function renderTable(data, market) {
+            const mode = viewMode.value;
+            let activeKeys = [];
+            if (mode === 'all') activeKeys = ['paasa', 'ibkr', 'indmoney', 'dhan', 'vested'];
+            else activeKeys = [mode];
+
+            let html = '<table class="comparison-table"><thead><tr><th>Fee Component</th>';
+            activeKeys.forEach(k => {
+                html += `<th>${data[k].name}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            const makeRow = (label, keyOrFn, isDetailed = false) => {
+                let hasData = false;
+                let cells = activeKeys.map(k => {
+                    if (!data[k].available) return '<td class="unavailable">Unavailable</td>';
+                    let val = typeof keyOrFn === 'function' ? keyOrFn(data[k]) : data[k][keyOrFn];
+                    if (val !== '-' && val !== null && val !== 0 && val !== '$0.00') hasData = true;
+                    
+                    if (typeof val === 'number') val = isDetailed ? fmtDetailed(val) : fmt(val);
+                    return `<td>${val || '-'}</td>`;
+                });
+                if (hasData || activeKeys.length === 1) { 
+                    html += `<tr><td>${label}</td>${cells.join('')}</tr>`;
+                }
+            };
+
+            makeRow("Base Rate", d => d.rateStr);
+            
+            let cells = activeKeys.map(k => {
+                if (!data[k].available) return '<td class="unavailable">Unavailable</td>';
+                let cellHtml = '';
+                if (data[k].rawCalc !== null) {
+                    cellHtml += `<span class="strikethrough">${fmt(data[k].rawCalc)}</span> `;
+                }
+                cellHtml += `${fmt(data[k].baseBrokerage)}`;
+                if (data[k].limitStr) {
+                    cellHtml += `<span class="limit-str">${data[k].limitStr}</span>`;
+                }
+                return `<td>${cellHtml}</td>`;
+            });
+            html += `<tr><td>Calculated Brokerage</td>${cells.join('')}</tr>`;
+
+            makeRow("GST / IGST (18%)", d => fmtDetailed(d.gst), true);
+            makeRow("IFSCA Turnover Fee", d => fmtDetailed(d.ifsca), true);
+            makeRow("SEC Fee", d => fmtDetailed(d.sec), true);
+            makeRow("FINRA TAF", d => fmtDetailed(d.taf), true);
+            makeRow("Clearing Fee", d => fmtDetailed(d.clearing), true);
+            makeRow("Pass-Through Fees", d => fmtDetailed(d.passthrough), true);
+            makeRow("Platform FX Markup Cost", d => fmtDetailed(d.fxCost), true);
+
+            let sfaCells = activeKeys.map(k => {
+                if (!data[k].available) return '<td class="unavailable">Unavailable</td>';
+                let val = data[k].scheduleFA;
+                if (val === "Yes") {
+                    return `<td><span style="display:inline-block; padding:4px 10px; border-radius:12px; background-color:var(--success-bg); color:var(--success-text); font-weight:600; border:1px solid var(--success-border); font-size: 0.8rem;">Yes</span></td>`;
+                } else {
+                    return `<td><span style="display:inline-block; padding:4px 10px; border-radius:12px; background-color:#fef2f2; color:#991b1b; font-weight:600; border:1px solid #fecaca; font-size: 0.8rem;">No</span></td>`;
+                }
+            });
+            html += `<tr style="background-color: #eff6ff;"><td style="font-weight:700; color:var(--primary);">Schedule FA Ready <span style="display:block; font-size:0.7rem; color:var(--text-secondary); font-weight:normal; margin-top:4px;">ITR Tax Compliance</span></td>${sfaCells.join('')}</tr>`;
+
+            html += '<tr class="total-row"><th>Total Estimated Cost</th>';
+            let minTotal = Infinity;
+            activeKeys.forEach(k => {
+                if (data[k].available && data[k].total > 0 && data[k].total < minTotal) {
+                    minTotal = data[k].total;
+                }
+            });
+
+            activeKeys.forEach(k => {
+                if (!data[k].available) {
+                    html += '<td>-</td>';
+                } else {
+                    html += `<td>${fmt(data[k].total)}</td>`;
+                }
+            });
+            html += '</tr>';
+
+            if (activeKeys.length > 1 && minTotal < Infinity) {
+                html += '<tr class="best-rate-row"><td></td>';
+                activeKeys.forEach(k => {
+                    if (data[k].available && Math.abs(data[k].total - minTotal) < 0.0001) {
+                        html += `<td><span class="badge-best">Lowest Cost</span></td>`;
+                    } else {
+                        html += `<td></td>`;
+                    }
+                });
+                html += '</tr>';
+            }
+
+            html += '</tbody></table>';
+            tableContainer.innerHTML = html;
+        }
+
+
+        // --- PORTFOLIO COST BREAKDOWN LOGIC ---
+        const pfInvestment = document.getElementById('pfInvestment');
+        const pfMgmtFee = document.getElementById('pfMgmtFee');
+        const pfExpenseRatio = document.getElementById('pfExpenseRatio');
+        const pfForex = document.getElementById('pfForex');
+        const pfNumScrips = document.getElementById('pfNumScrips');
+        const pfFundType = document.getElementById('pfFundType');
+        const pfPlatform = document.getElementById('pfPlatform');
+        const pfGstMgmt = document.getElementById('pfGstMgmt');
+        const pfTableContainer = document.getElementById('pfTableContainer');
+
+        function calculatePortfolio() {
+            const inv = parseFloat(pfInvestment.value) || 0;
+            const mgmt = parseFloat(pfMgmtFee.value) || 0;
+            const ter = parseFloat(pfExpenseRatio.value) || 0;
+            const fx = parseFloat(pfForex.value) || 0;
+            const scrips = parseInt(pfNumScrips.value) || 0;
+            const applyGst = pfGstMgmt.checked;
+            const platform = pfPlatform.value;
+
+            if (inv <= 0 || scrips <= 0) {
+                pfTableContainer.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--text-secondary);">Enter a valid total portfolio size and number of scrips to see the breakdown.</div>';
+                return;
+            }
+
+            const market = pfFundType.value;
+            const price = parseFloat(priceInput.value) || 100;
+            const tv = inv / scrips; 
+            const sharesPerScrip = tv / price;
+            let singleBrok = 0;
+
+            let limitMsg = "";
+            if (platform === 'paasa') {
+                let r = tv * 0.001;
+                let pMin = (market === 'US') ? 0.50 : 1.70;
+                singleBrok = Math.max(pMin, Math.min(r, 40.00));
+                if (r < pMin) limitMsg = `<br><span style="font-size:0.75rem; color:var(--alert-color); font-weight:normal;">(↳ Min applied: ${fmt(pMin)}/scrip)</span>`;
+                else if (r > 40.00) limitMsg = `<br><span style="font-size:0.75rem; color:var(--alert-color); font-weight:normal;">(↳ Max capped: $40.00/scrip)</span>`;
+            } else if (platform === 'ibkr') {
+                const plan = ibkrPlan.value;
+                let iBase = 0, iMin = 0, iMax = Infinity;
+                if (market === 'US') {
+                    if (plan === 'Tiered') {
+                        const rate = usTiers[parseInt(ibkrVolTier.value) || 0].rate;
+                        iBase = sharesPerScrip * rate;
+                        iMin = 0.35; iMax = tv * 0.01;
+                    } else {
+                        iBase = sharesPerScrip * 0.005;
+                        iMin = 1.00; iMax = tv * 0.01;
+                    }
+                } else {
+                    if (plan === 'Tiered') {
+                        const rate = euTiers[parseInt(ibkrVolTier.value) || 0].rate;
+                        iBase = tv * rate;
+                        iMin = 1.70; iMax = 39.00;
+                    } else {
+                        iBase = tv * 0.0005;
+                        iMin = 4.00;
+                    }
+                }
+                singleBrok = Math.max(iMin, Math.min(iBase, iMax));
+                if (iBase < iMin) limitMsg = `<br><span style="font-size:0.75rem; color:var(--alert-color); font-weight:normal;">(↳ Min applied: ${fmt(iMin)}/scrip)</span>`;
+                else if (iBase > iMax && iMax !== Infinity) limitMsg = `<br><span style="font-size:0.75rem; color:var(--alert-color); font-weight:normal;">(↳ Max capped: ${fmt(iMax)}/scrip)</span>`;
+            } else if (platform === 'indmoney') {
+                if (price < 1.00) {
+                    singleBrok = tv * 0.0038;
+                } else {
+                    let r = tv * 0.0025;
+                    singleBrok = Math.min(r, 25.00);
+                    if (r > 25.00) limitMsg = `<br><span style="font-size:0.75rem; color:var(--alert-color); font-weight:normal;">(↳ Max capped: $25.00/scrip)</span>`;
+                }
+            } else if (platform === 'dhan') {
+                singleBrok = tv * 0.0025;
+            } else if (platform === 'vested') {
+                let r = tv * 0.0025;
+                singleBrok = Math.min(r, 35.00);
+                if (r > 35.00) limitMsg = `<br><span style="font-size:0.75rem; color:var(--alert-color); font-weight:normal;">(↳ Max capped: $35.00/scrip)</span>`;
+            }
+
+            const execCost = singleBrok * scrips;
+            const fxCost = inv * (fx / 100);
+            const upfrontTotal = fxCost + execCost;
+
+            const mgmtCost = inv * (mgmt / 100);
+            const gstCost = applyGst ? (mgmtCost * 0.18) : 0;
+            const terCost = inv * (ter / 100);
+            const annualTotal = mgmtCost + gstCost + terCost;
+
+            const year1Total = upfrontTotal + annualTotal;
+            const year1Impact = (year1Total / inv) * 100;
+
+            let html = `
+                <table class="comparison-table" id="pf-table" style="text-align: left;">
+                    <thead>
+                        <tr>
+                            <th style="width: 50%;">Cost Category</th>
+                            <th style="text-align: right;">Amount (USD)</th>
+                            <th style="text-align: right;">% of Portfolio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background-color: #f1f5f9;"><td colspan="3" style="font-weight: 700; font-size: 0.85rem; color: var(--text-secondary);">UPFRONT COSTS (ONE-TIME)</td></tr>
+                        <tr>
+                            <td>Forex & Remittance Fee (${fx.toFixed(2)}%)</td>
+                            <td style="text-align: right;">${fmt(fxCost)}</td>
+                            <td style="text-align: right;">${((fxCost/inv)*100).toFixed(2)}%</td>
+                        </tr>
+                        <tr>
+                            <td>Platform Execution Fees (${scrips} scrips via ${pfPlatform.options[pfPlatform.selectedIndex].text})${limitMsg}</td>
+                            <td style="text-align: right;">${fmt(execCost)}</td>
+                            <td style="text-align: right;">${((execCost/inv)*100).toFixed(2)}%</td>
+                        </tr>
+                        <tr style="font-weight: 600;">
+                            <td>Total Upfront Funding Cost</td>
+                            <td style="text-align: right;">${fmt(upfrontTotal)}</td>
+                            <td style="text-align: right;">${((upfrontTotal/inv)*100).toFixed(2)}%</td>
+                        </tr>
+                        
+                        <tr style="background-color: #f1f5f9;"><td colspan="3" style="font-weight: 700; font-size: 0.85rem; color: var(--text-secondary); padding-top: 20px;">ONGOING ANNUAL COSTS (RECURRING)</td></tr>
+                        <tr>
+                            <td>Annual Advisory / Management Fee (${mgmt.toFixed(2)}%)</td>
+                            <td style="text-align: right;">${fmt(mgmtCost)}</td>
+                            <td style="text-align: right;">${((mgmtCost/inv)*100).toFixed(2)}%</td>
+                        </tr>
+                        <tr>
+                            <td>GST on Management Fee (18%)</td>
+                            <td style="text-align: right;">${fmt(gstCost)}</td>
+                            <td style="text-align: right;">${((gstCost/inv)*100).toFixed(2)}%</td>
+                        </tr>
+                        <tr>
+                            <td>Underlying ETF Expense Ratios (${ter.toFixed(2)}%) <br><span style="font-size:0.75rem; color:var(--text-secondary); font-weight:normal;">(Charged internally by fund; not deducted from cash balance)</span></td>
+                            <td style="text-align: right;">${fmt(terCost)}</td>
+                            <td style="text-align: right;">${((terCost/inv)*100).toFixed(2)}%</td>
+                        </tr>
+                        <tr style="font-weight: 600;">
+                            <td>Total Ongoing Annual Cost</td>
+                            <td style="text-align: right;">${fmt(annualTotal)}</td>
+                            <td style="text-align: right;">${((annualTotal/inv)*100).toFixed(2)}%</td>
+                        </tr>
+
+                        <tr class="total-row" style="border-top: 2px solid var(--primary);">
+                            <td style="padding-top: 20px;">Total Effective Year 1 Cost</td>
+                            <td style="text-align: right; padding-top: 20px; color: var(--primary);">${fmt(year1Total)}</td>
+                            <td style="text-align: right; padding-top: 20px; color: var(--primary);">${year1Impact.toFixed(2)}%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            pfTableContainer.innerHTML = html;
+        }
+
+        // --- EXPORT LOGIC ---
+        function downloadJPG(containerId, fileName) {
+            const container = document.getElementById(containerId);
+            const btnGroup = container.previousElementSibling; 
+            btnGroup.style.display = 'none';
+
+            html2canvas(container, { 
+                scale: 2, 
+                backgroundColor: "#ffffff"
+            }).then(canvas => {
+                let link = document.createElement('a');
+                link.download = fileName;
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+                
+                btnGroup.style.display = 'flex';
+            });
+        }
+
+        function downloadExcel(tableClassOrId, fileName) {
+            let table = document.getElementById(tableClassOrId) || document.querySelector('.' + tableClassOrId);
+            let cloneTable = table.cloneNode(true);
+            
+            cloneTable.querySelectorAll('.strikethrough').forEach(el => el.remove());
+
+            let wb = XLSX.utils.table_to_book(cloneTable, { sheet: "Data" });
+            XLSX.writeFile(wb, fileName);
+        }
+
+        // --- INITIALIZATION & LISTENERS ---
+        document.querySelectorAll('.fx-input').forEach(input => {
+            input.addEventListener('input', calculateAll);
+        });
+
+        viewMode.addEventListener('change', updateUI);
+        marketSelect.addEventListener('change', updateUI);
+        tradeTypeSelect.addEventListener('change', calculateAll);
+        quantityInput.addEventListener('input', calculateAll);
+        priceInput.addEventListener('input', calculateAll);
+        numTradesInput.addEventListener('input', calculateAll);
+        ibkrPlan.addEventListener('change', updateUI);
+        ibkrVolTier.addEventListener('change', calculateAll);
+
+        [pfInvestment, pfMgmtFee, pfExpenseRatio, pfForex, pfNumScrips, pfPlatform].forEach(input => {
+            input.addEventListener('input', calculatePortfolio);
+        });
+        pfFundType.addEventListener('change', updateUI);
+        pfGstMgmt.addEventListener('change', calculatePortfolio);
+
+        updateUI();
+        calculatePortfolio();
+    </script>
+</body>
+</html>
